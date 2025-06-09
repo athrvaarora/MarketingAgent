@@ -1,0 +1,386 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Marketing Package Agent{% endblock %}
+
+{% block content %}
+<div x-data="marketingAgent()" x-init="init()">
+    <!-- Header Section -->
+    <div class="text-center mb-4">
+        <h1 class="text-3xl font-bold text-purple mb-2">
+            <i class="fas fa-rocket"></i>
+            Marketing Package Agent
+        </h1>
+        <p class="text-muted">Automate your marketing package downloads with AI-powered browser agents</p>
+    </div>
+    
+    <!-- Progress Overview -->
+    <div class="grid grid-3 mb-4">
+        <!-- Overall Progress -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-chart-line"></i>
+                    Overall Progress
+                </h3>
+            </div>
+            <div class="card-body text-center">
+                <div class="text-3xl font-bold text-purple mb-2" x-text="Math.round(progressStats.overall_percentage || 0) + '%'">0%</div>
+                <div class="progress mb-2">
+                    <div class="progress-bar" :style="`width: ${progressStats.overall_percentage || 0}%`"></div>
+                </div>
+                <div class="text-sm text-muted">
+                    <span x-text="progressStats.successful || 0">0</span> of 
+                    <span x-text="progressStats.total || 0">0</span> completed
+                </div>
+            </div>
+        </div>
+        
+        <!-- Levy Retail -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-building"></i>
+                    Levy Retail
+                </h3>
+            </div>
+            <div class="card-body text-center">
+                <div class="text-2xl font-bold text-success mb-2" x-text="Math.round(progressStats.groups?.['www.levyretail.com']?.percentage || 0) + '%'">0%</div>
+                <div class="progress mb-2">
+                    <div class="progress-bar" :style="`width: ${progressStats.groups?.['www.levyretail.com']?.percentage || 0}%`"></div>
+                </div>
+                <div class="text-sm text-muted">
+                    <span x-text="progressStats.groups?.['www.levyretail.com']?.completed || 0">0</span> of 
+                    <span x-text="progressStats.groups?.['www.levyretail.com']?.total || 0">0</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tag Industrial -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-industry"></i>
+                    Tag Industrial
+                </h3>
+            </div>
+            <div class="card-body text-center">
+                <div class="text-2xl font-bold text-warning mb-2" x-text="Math.round(progressStats.groups?.['tag-industrial.com']?.percentage || 0) + '%'">0%</div>
+                <div class="progress mb-2">
+                    <div class="progress-bar" :style="`width: ${progressStats.groups?.['tag-industrial.com']?.percentage || 0}%`"></div>
+                </div>
+                <div class="text-sm text-muted">
+                    <span x-text="progressStats.groups?.['tag-industrial.com']?.completed || 0">0</span> of 
+                    <span x-text="progressStats.groups?.['tag-industrial.com']?.total || 0">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="grid grid-2">
+        <!-- Control Panel -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-cogs"></i>
+                    Control Panel
+                </h2>
+            </div>
+            <div class="card-body">
+                <form @submit.prevent="submitJob()">
+                    <!-- Website Group -->
+                    <div class="form-group">
+                        <label class="form-label">Website Group</label>
+                        <select x-model="formData.website_group" class="form-control">
+                            <option value="ALL">All Websites</option>
+                            <option value="LR">Levy Retail (LR)</option>
+                            <option value="TI">Tag Industrial (TI)</option>
+                            <option value="NLAG">Net Lease Advisory Group (NLAG)</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Max Properties -->
+                    <div class="form-group">
+                        <label class="form-label">Maximum Properties</label>
+                        <div class="grid grid-2" style="gap: 0.5rem;">
+                            <input 
+                                type="number" 
+                                x-model="formData.max_properties" 
+                                class="form-control" 
+                                placeholder="Enter number"
+                                min="1"
+                                max="100"
+                                :disabled="formData.unlimited"
+                            >
+                            <label class="form-control" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" x-model="formData.unlimited" @change="toggleUnlimited()">
+                                <span>Unlimited</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Headless Mode -->
+                    <div class="form-group">
+                        <label class="form-label">Browser Mode</label>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <span class="text-muted">Visible Browser</span>
+                            <label class="switch">
+                                <input type="checkbox" x-model="formData.headless">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="text-muted">Headless Mode</span>
+                        </div>
+                        <div class="text-sm text-muted mt-2">
+                            <i class="fas fa-info-circle"></i>
+                            Headless mode runs the browser in the background (faster but no visual feedback)
+                        </div>
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <button 
+                        type="submit" 
+                        class="btn btn-primary" 
+                        style="width: 100%;"
+                        :disabled="isRunning"
+                    >
+                        <template x-if="!isRunning">
+                            <span>
+                                <i class="fas fa-play"></i>
+                                Start Marketing Agent
+                            </span>
+                        </template>
+                        <template x-if="isRunning">
+                            <span>
+                                <div class="spinner"></div>
+                                Agent Running...
+                            </span>
+                        </template>
+                    </button>
+                </form>
+                
+                <!-- Job Output -->
+                <div x-show="jobOutput.length > 0" class="mt-4">
+                    <h3 class="font-bold mb-2">
+                        <i class="fas fa-terminal"></i>
+                        Live Output
+                    </h3>
+                    <div class="card" style="background: var(--gray-900); color: var(--gray-100); max-height: 300px; overflow-y: auto;">
+                        <div class="card-body" style="font-family: 'Courier New', monospace; font-size: 0.875rem;">
+                            <template x-for="line in jobOutput" :key="line.id">
+                                <div x-text="line.text" class="mb-1"></div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Downloads -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-file-pdf"></i>
+                    Recent Downloads
+                </h2>
+            </div>
+            <div class="card-body">
+                <template x-if="Object.keys(localPdfs).some(key => localPdfs[key].length > 0)">
+                    <div>
+                        <template x-for="(files, group) in localPdfs" :key="group">
+                            <div x-show="files.length > 0" class="mb-4">
+                                <h4 class="font-bold text-purple mb-2" x-text="getGroupDisplayName(group)"></h4>
+                                <div class="grid" style="grid-template-columns: 1fr; gap: 0.5rem;">
+                                    <template x-for="file in files.slice(0, 5)" :key="file.name">
+                                        <div class="card" style="padding: 0.75rem; cursor: pointer;" @click="openPdf(file.path)">
+                                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                                <i class="fas fa-file-pdf text-error"></i>
+                                                <div style="flex: 1; min-width: 0;">
+                                                    <div class="font-bold text-sm" x-text="file.name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
+                                                    <div class="text-muted text-sm" x-text="formatFileSize(file.size)"></div>
+                                                </div>
+                                                <i class="fas fa-external-link-alt text-purple"></i>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                                <div x-show="files.length > 5" class="text-center mt-2">
+                                    <a href="/downloads" class="btn btn-secondary btn-sm">
+                                        View All <span x-text="files.length"></span> Files
+                                    </a>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+                <template x-if="!Object.keys(localPdfs).some(key => localPdfs[key].length > 0)">
+                    <div class="text-center text-muted">
+                        <i class="fas fa-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
+                        <p class="mt-2">No downloads yet</p>
+                        <p class="text-sm">Start the agent to begin downloading marketing packages</p>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function marketingAgent() {
+    return {
+        progressStats: {},
+        localPdfs: {},
+        formData: {
+            website_group: 'ALL',
+            max_properties: 5,
+            unlimited: false,
+            headless: false
+        },
+        isRunning: false,
+        jobOutput: [],
+        
+        init() {
+            this.loadProgressStats();
+            this.loadLocalPdfs();
+            this.setupSocketListeners();
+            
+            // Auto-refresh every 30 seconds
+            setInterval(() => {
+                this.loadProgressStats();
+                this.loadLocalPdfs();
+            }, 30000);
+        },
+        
+        loadProgressStats() {
+            fetch('/api/progress')
+                .then(response => response.json())
+                .then(data => {
+                    this.progressStats = data;
+                })
+                .catch(error => console.error('Error loading progress:', error));
+        },
+        
+        loadLocalPdfs() {
+            fetch('/api/pdfs')
+                .then(response => response.json())
+                .then(data => {
+                    this.localPdfs = data;
+                })
+                .catch(error => console.error('Error loading PDFs:', error));
+        },
+        
+        setupSocketListeners() {
+            socket.on('job_started', (data) => {
+                this.isRunning = true;
+                this.jobOutput = [{
+                    id: Date.now(),
+                    text: `🚀 Job started: ${data.command}`
+                }];
+            });
+            
+            socket.on('job_output', (data) => {
+                this.jobOutput.push({
+                    id: Date.now() + Math.random(),
+                    text: data.line
+                });
+                
+                // Keep only last 50 lines
+                if (this.jobOutput.length > 50) {
+                    this.jobOutput = this.jobOutput.slice(-50);
+                }
+                
+                // Auto-scroll to bottom
+                this.$nextTick(() => {
+                    const output = document.querySelector('.card-body[style*="font-family"]')?.parentElement;
+                    if (output) {
+                        output.scrollTop = output.scrollHeight;
+                    }
+                });
+            });
+            
+            socket.on('job_completed', (data) => {
+                this.isRunning = false;
+                this.jobOutput.push({
+                    id: Date.now(),
+                    text: `✅ Job completed with exit code: ${data.return_code}`
+                });
+                
+                // Refresh data
+                setTimeout(() => {
+                    this.loadProgressStats();
+                    this.loadLocalPdfs();
+                }, 2000);
+            });
+            
+            socket.on('job_error', (data) => {
+                this.isRunning = false;
+                this.jobOutput.push({
+                    id: Date.now(),
+                    text: `❌ Job error: ${data.error}`
+                });
+            });
+        },
+        
+        toggleUnlimited() {
+            if (this.formData.unlimited) {
+                this.formData.max_properties = null;
+            } else {
+                this.formData.max_properties = 5;
+            }
+        },
+        
+        submitJob() {
+            if (this.isRunning) return;
+            
+            const payload = {
+                website_group: this.formData.website_group === 'ALL' ? null : this.formData.website_group,
+                max_properties: this.formData.unlimited ? null : this.formData.max_properties,
+                headless: this.formData.headless
+            };
+            
+            fetch('/api/submit_job', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Job submitted:', data.job_id);
+                } else {
+                    alert('Failed to start job');
+                }
+            })
+            .catch(error => {
+                console.error('Error submitting job:', error);
+                alert('Error submitting job');
+            });
+        },
+        
+        openPdf(path) {
+            const url = `/pdf/${path.replace('marketing_packages/', '')}`;
+            window.open(url, '_blank');
+        },
+        
+        getGroupDisplayName(group) {
+            const names = {
+                'levyretail': 'Levy Retail',
+                'tag-industries': 'Tag Industrial', 
+                'netleaseadvisorygroup': 'Net Lease Advisory Group'
+            };
+            return names[group] || group;
+        },
+        
+        formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    }
+}
+</script>
+{% endblock %} 

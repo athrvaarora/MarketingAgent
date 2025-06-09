@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+
+{% block title %}Database - Marketing Package Agent{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table-container {
+        overflow-x: auto;
+        border-radius: 0.5rem;
+        border: 1px solid var(--gray-200);
+    }
+    
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+        background: var(--white);
+    }
+    
+    .table th,
+    .table td {
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid var(--gray-200);
+        vertical-align: top;
+    }
+    
+    .table th {
+        background: linear-gradient(135deg, var(--neon-purple) 0%, var(--neon-purple-light) 100%);
+        color: var(--white);
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .table tbody tr:hover {
+        background: var(--purple-bg);
+    }
+    
+    .table tbody tr:nth-child(even) {
+        background: var(--gray-50);
+    }
+    
+    .table tbody tr:nth-child(even):hover {
+        background: var(--purple-bg);
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .status-pending {
+        background: var(--gray-200);
+        color: var(--gray-700);
+    }
+    
+    .status-success {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+    
+    .status-error {
+        background: #FEE2E2;
+        color: #991B1B;
+    }
+    
+    .status-in-progress {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+    
+    .url-link {
+        color: var(--neon-purple);
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    .url-link:hover {
+        text-decoration: underline;
+    }
+    
+    .filter-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .refresh-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--gray-500);
+        font-size: 0.875rem;
+    }
+    
+    .refresh-indicator.updating {
+        color: var(--neon-purple);
+    }
+    
+    .property-cell {
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .notes-cell {
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="databasePage()" x-init="init()">
+    <!-- Header -->
+    <div class="text-center mb-4">
+        <h1 class="text-3xl font-bold text-purple mb-2">
+            <i class="fas fa-database"></i>
+            Database Monitor
+        </h1>
+        <p class="text-muted">Real-time view of marketing checklist database</p>
+        <div class="refresh-indicator mt-2" :class="{ 'updating': isUpdating }">
+            <i class="fas fa-sync-alt" :class="{ 'fa-spin': isUpdating }"></i>
+            <span x-text="lastUpdated ? `Last updated: ${lastUpdated}` : 'Loading...'"></span>
+        </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="grid grid-3 mb-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="text-3xl font-bold text-purple mb-2" x-text="properties.length">0</div>
+                <div class="text-muted">Total Properties</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="text-3xl font-bold text-success mb-2" x-text="getStatusCount('SUCCESS')">0</div>
+                <div class="text-muted">Completed</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="text-3xl font-bold text-warning mb-2" x-text="getStatusCount('PENDING')">0</div>
+                <div class="text-muted">Pending</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="filter-row">
+                <div class="form-group mb-0">
+                    <label class="form-label">Website Group</label>
+                    <select x-model="filters.website_group" class="form-control">
+                        <option value="">All Groups</option>
+                        <option value="www.levyretail.com">Levy Retail</option>
+                        <option value="tag-industrial.com">Tag Industrial</option>
+                        <option value="netleaseadvisorygroup.com">Net Lease Advisory Group</option>
+                    </select>
+                </div>
+                
+                <div class="form-group mb-0">
+                    <label class="form-label">Status</label>
+                    <select x-model="filters.status" class="form-control">
+                        <option value="">All Statuses</option>
+                        <option value="PENDING">Pending</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="SUCCESS">Success</option>
+                        <option value="ERROR">Error</option>
+                        <option value="TIMEOUT">Timeout</option>
+                    </select>
+                </div>
+                
+                <div class="form-group mb-0">
+                    <label class="form-label">Search</label>
+                    <input 
+                        type="text" 
+                        x-model="filters.search" 
+                        class="form-control" 
+                        placeholder="Search properties..."
+                    >
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Table -->
+    <div class="card">
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">#</th>
+                        <th style="width: 150px;">Website Group</th>
+                        <th style="width: 200px;">Property Name</th>
+                        <th style="width: 80px;">Visited</th>
+                        <th style="width: 100px;">Downloaded</th>
+                        <th style="width: 100px;">Status</th>
+                        <th style="width: 200px;">Marketing Files</th>
+                        <th style="width: 300px;">Notes</th>
+                        <th style="width: 150px;">Last Attempt</th>
+                        <th style="width: 200px;">Property URL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="property in getFilteredProperties()" :key="property.id">
+                        <tr>
+                            <td x-text="property.property_number"></td>
+                            <td>
+                                <span class="text-sm" x-text="getGroupShortName(property.website_group)"></span>
+                            </td>
+                            <td class="property-cell" :title="property.property_name">
+                                <span x-text="property.property_name"></span>
+                            </td>
+                            <td>
+                                <span x-text="property.visited" :class="property.visited === 'YES' ? 'text-success' : 'text-muted'"></span>
+                            </td>
+                            <td>
+                                <span x-text="property.downloaded" :class="property.downloaded === 'YES' ? 'text-success' : 'text-muted'"></span>
+                            </td>
+                            <td>
+                                <span 
+                                    class="status-badge" 
+                                    :class="getStatusClass(property.download_status)"
+                                    x-text="property.download_status"
+                                ></span>
+                            </td>
+                            <td class="text-sm" x-text="property.marketing_files_found || '-'"></td>
+                            <td class="notes-cell text-sm" :title="property.notes">
+                                <span x-text="property.notes || '-'"></span>
+                            </td>
+                            <td class="text-sm" x-text="property.last_attempt || '-'"></td>
+                            <td>
+                                <a 
+                                    :href="property.property_url" 
+                                    target="_blank" 
+                                    class="url-link text-sm"
+                                    x-show="property.property_url"
+                                >
+                                    <i class="fas fa-external-link-alt"></i>
+                                    View
+                                </a>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function databasePage() {
+    return {
+        properties: [],
+        isUpdating: false,
+        lastUpdated: null,
+        filters: {
+            website_group: '',
+            status: '',
+            search: ''
+        },
+        
+        init() {
+            this.loadProperties();
+            this.setupSocketListeners();
+            
+            // Auto-refresh every 15 seconds
+            setInterval(() => {
+                this.loadProperties();
+            }, 15000);
+        },
+        
+        loadProperties() {
+            this.isUpdating = true;
+            fetch('/api/properties')
+                .then(response => response.json())
+                .then(data => {
+                    this.properties = data;
+                    this.lastUpdated = new Date().toLocaleTimeString();
+                })
+                .catch(error => console.error('Error loading properties:', error))
+                .finally(() => {
+                    this.isUpdating = false;
+                });
+        },
+        
+        setupSocketListeners() {
+            socket.on('database_update', (data) => {
+                this.properties = data;
+                this.lastUpdated = new Date().toLocaleTimeString();
+            });
+        },
+        
+        getFilteredProperties() {
+            return this.properties.filter(property => {
+                // Website group filter
+                if (this.filters.website_group && property.website_group !== this.filters.website_group) {
+                    return false;
+                }
+                
+                // Status filter
+                if (this.filters.status && property.download_status !== this.filters.status) {
+                    return false;
+                }
+                
+                // Search filter
+                if (this.filters.search) {
+                    const search = this.filters.search.toLowerCase();
+                    return property.property_name?.toLowerCase().includes(search) ||
+                           property.website_group?.toLowerCase().includes(search) ||
+                           property.notes?.toLowerCase().includes(search);
+                }
+                
+                return true;
+            });
+        },
+        
+        getStatusCount(status) {
+            return this.properties.filter(p => p.download_status === status).length;
+        },
+        
+        getStatusClass(status) {
+            const classes = {
+                'PENDING': 'status-pending',
+                'IN_PROGRESS': 'status-in-progress', 
+                'SUCCESS': 'status-success',
+                'ERROR': 'status-error',
+                'TIMEOUT': 'status-error',
+                'DOWNLOAD_FAILED': 'status-error',
+                'URL_EXTRACTION_FAILED': 'status-error'
+            };
+            return classes[status] || 'status-pending';
+        },
+        
+        getGroupShortName(group) {
+            const names = {
+                'www.levyretail.com': 'LR',
+                'tag-industrial.com': 'TI',
+                'netleaseadvisorygroup.com': 'NLAG'
+            };
+            return names[group] || group;
+        }
+    }
+}
+</script>
+{% endblock %} 

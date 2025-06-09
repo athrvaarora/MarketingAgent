@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}Downloads - Marketing Package Agent{% endblock %}
+
+{% block content %}
+<div x-data="downloadsPage()" x-init="init()">
+    <!-- Header -->
+    <div class="text-center mb-4">
+        <h1 class="text-3xl font-bold text-purple mb-2">
+            <i class="fas fa-download"></i>
+            Downloaded Marketing Packages
+        </h1>
+        <p class="text-muted">Browse and access all downloaded PDF marketing packages</p>
+    </div>
+    
+    <!-- Summary Stats -->
+    <div class="grid grid-3 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-building"></i>
+                    Levy Retail
+                </h3>
+            </div>
+            <div class="card-body text-center">
+                <div class="text-3xl font-bold text-success mb-2" x-text="localPdfs.levyretail?.length || 0">0</div>
+                <div class="text-muted">PDF Files</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-industry"></i>
+                    Tag Industrial
+                </h3>
+            </div>
+            <div class="card-body text-center">
+                <div class="text-3xl font-bold text-warning mb-2" x-text="localPdfs['tag-industries']?.length || 0">0</div>
+                <div class="text-muted">PDF Files</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-handshake"></i>
+                    Net Lease Advisory
+                </h3>
+            </div>
+            <div class="card-body text-center">
+                <div class="text-3xl font-bold text-purple mb-2" x-text="localPdfs.netleaseadvisorygroup?.length || 0">0</div>
+                <div class="text-muted">PDF Files</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filter and Search -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="grid grid-2">
+                <div class="form-group mb-0">
+                    <label class="form-label">Filter by Website Group</label>
+                    <select x-model="selectedGroup" class="form-control">
+                        <option value="all">All Groups</option>
+                        <option value="levyretail">Levy Retail</option>
+                        <option value="tag-industries">Tag Industrial</option>
+                        <option value="netleaseadvisorygroup">Net Lease Advisory Group</option>
+                    </select>
+                </div>
+                <div class="form-group mb-0">
+                    <label class="form-label">Search Files</label>
+                    <input 
+                        type="text" 
+                        x-model="searchTerm" 
+                        class="form-control" 
+                        placeholder="Search by filename..."
+                    >
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- PDF Files Grid -->
+    <template x-if="getTotalFiles() > 0">
+        <div>
+            <template x-for="(files, group) in getFilteredPdfs()" :key="group">
+                <div x-show="files.length > 0" class="mb-4">
+                    <!-- Group Header -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">
+                                <i :class="getGroupIcon(group)"></i>
+                                <span x-text="getGroupDisplayName(group)"></span>
+                                <span class="text-sm font-normal">(<span x-text="files.length"></span> files)</span>
+                            </h2>
+                        </div>
+                        <div class="card-body">
+                            <!-- Files Grid -->
+                            <div class="grid grid-3">
+                                <template x-for="file in files" :key="file.name">
+                                    <div class="card" style="cursor: pointer; transition: all 0.3s ease;" @click="openPdf(file.path)">
+                                        <div class="card-body">
+                                            <div style="display: flex; align-items: flex-start; gap: 1rem;">
+                                                <div style="flex-shrink: 0;">
+                                                    <i class="fas fa-file-pdf text-error" style="font-size: 2rem;"></i>
+                                                </div>
+                                                <div style="flex: 1; min-width: 0;">
+                                                    <h4 class="font-bold text-sm mb-2" x-text="file.name" style="word-break: break-word;"></h4>
+                                                    <div class="text-muted text-sm mb-2">
+                                                        <div>
+                                                            <i class="fas fa-weight-hanging"></i>
+                                                            <span x-text="formatFileSize(file.size)"></span>
+                                                        </div>
+                                                        <div>
+                                                            <i class="fas fa-clock"></i>
+                                                            <span x-text="file.modified"></span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="text-center">
+                                                        <span class="btn btn-secondary btn-sm">
+                                                            <i class="fas fa-external-link-alt"></i>
+                                                            Open PDF
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </template>
+    
+    <!-- Empty State -->
+    <template x-if="getTotalFiles() === 0">
+        <div class="card">
+            <div class="card-body text-center" style="padding: 4rem 2rem;">
+                <i class="fas fa-inbox" style="font-size: 4rem; color: var(--gray-300); margin-bottom: 1rem;"></i>
+                <h3 class="text-muted mb-2">No Downloads Found</h3>
+                <p class="text-muted mb-4">
+                    <template x-if="searchTerm || selectedGroup !== 'all'">
+                        <span>No files match your current filters. Try adjusting your search or filter options.</span>
+                    </template>
+                    <template x-if="!searchTerm && selectedGroup === 'all'">
+                        <span>Start the marketing agent from the Home page to begin downloading marketing packages.</span>
+                    </template>
+                </p>
+                <div style="display: flex; gap: 1rem; justify-content: center;">
+                    <button @click="clearFilters()" class="btn btn-secondary" x-show="searchTerm || selectedGroup !== 'all'">
+                        <i class="fas fa-times"></i>
+                        Clear Filters
+                    </button>
+                    <a href="/" class="btn btn-primary">
+                        <i class="fas fa-home"></i>
+                        Go to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </template>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function downloadsPage() {
+    return {
+        localPdfs: {},
+        selectedGroup: 'all',
+        searchTerm: '',
+        
+        init() {
+            this.loadLocalPdfs();
+            
+            // Auto-refresh every 30 seconds
+            setInterval(() => {
+                this.loadLocalPdfs();
+            }, 30000);
+        },
+        
+        loadLocalPdfs() {
+            fetch('/api/pdfs')
+                .then(response => response.json())
+                .then(data => {
+                    this.localPdfs = data;
+                })
+                .catch(error => console.error('Error loading PDFs:', error));
+        },
+        
+        getFilteredPdfs() {
+            let filtered = {};
+            
+            // Filter by group
+            if (this.selectedGroup === 'all') {
+                filtered = { ...this.localPdfs };
+            } else {
+                filtered[this.selectedGroup] = this.localPdfs[this.selectedGroup] || [];
+            }
+            
+            // Filter by search term
+            if (this.searchTerm) {
+                const searchLower = this.searchTerm.toLowerCase();
+                Object.keys(filtered).forEach(group => {
+                    filtered[group] = filtered[group].filter(file => 
+                        file.name.toLowerCase().includes(searchLower)
+                    );
+                });
+            }
+            
+            return filtered;
+        },
+        
+        getTotalFiles() {
+            const filtered = this.getFilteredPdfs();
+            return Object.values(filtered).reduce((total, files) => total + files.length, 0);
+        },
+        
+        clearFilters() {
+            this.selectedGroup = 'all';
+            this.searchTerm = '';
+        },
+        
+        openPdf(path) {
+            const url = `/pdf/${path.replace('marketing_packages/', '')}`;
+            window.open(url, '_blank');
+        },
+        
+        getGroupDisplayName(group) {
+            const names = {
+                'levyretail': 'Levy Retail',
+                'tag-industries': 'Tag Industrial', 
+                'netleaseadvisorygroup': 'Net Lease Advisory Group'
+            };
+            return names[group] || group;
+        },
+        
+        getGroupIcon(group) {
+            const icons = {
+                'levyretail': 'fas fa-building',
+                'tag-industries': 'fas fa-industry',
+                'netleaseadvisorygroup': 'fas fa-handshake'
+            };
+            return icons[group] || 'fas fa-folder';
+        },
+        
+        formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    }
+}
+</script>
+{% endblock %} 

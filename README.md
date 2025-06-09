@@ -1,10 +1,21 @@
-# Marketing Package Agent
+# 🤖 Marketing Package Agent
 
-An AI-powered browser automation system that systematically downloads marketing packages from real estate websites with a beautiful web interface for monitoring and control.
+<div align="center">
 
-![Marketing Package Agent](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
-![Python](https://img.shields.io/badge/Python-3.11+-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
+**AI-Powered Commercial Real Estate Marketing Package Download System**
+
+[![GitHub Repository](https://img.shields.io/badge/GitHub-MarketingAgent-blue?style=for-the-badge&logo=github)](https://github.com/athrvaarora/MarketingAgent)
+[![Python](https://img.shields.io/badge/Python-3.11+-blue?style=for-the-badge&logo=python)](https://www.python.org/)
+[![Success Rate](https://img.shields.io/badge/Success%20Rate-89%25-brightgreen?style=for-the-badge)](https://github.com/athrvaarora/MarketingAgent)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+
+*An AI-powered browser automation system that systematically downloads marketing packages from real estate websites with a beautiful web interface for monitoring and control.*
+
+[🚀 Quick Start](#-quick-start) • [📸 Screenshots](#-screenshots) • [🔧 Features](#-features) • [📖 Documentation](#-detailed-setup-guide)
+
+</div>
+
+---
 
 ## 🌟 Features
 
@@ -319,3 +330,17 @@ pandas                 # Data processing
 - **Real-time Updates**: Efficient WebSocket communication
 - **File Management**: Organized folder structure for PDFs
 
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [browser-use](https://github.com/browser-use/browser-use) - AI browser automation framework
+- [OpenAI](https://openai.com) - GPT-4o language model
+- [Railway](https://railway.app) - PostgreSQL hosting
+- [Flask](https://flask.palletsprojects.com/) - Web framework
